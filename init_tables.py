@@ -11,3 +11,9 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 """
 
+CREATE_TABLE = """
+CREATE TABLE IF NOT EXISTS prices(
+    
+
+);
+"""
