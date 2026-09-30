@@ -26,33 +26,56 @@ The universe is ~11,000 publicly traded companies organized into ~1,000 investme
 
 ## Getting started
 
-\`\`\`bash
-# clone and enter the repo
-git clone <repo-url>
-cd stock-recommendations
+Requires Python 3.11 (the production version; see `CLAUDE.md`). All dependencies are pinned in `pyproject.toml`; there is no `requirements.txt`.
 
-# set up the environment
-python3 -m venv .venv
+```bash
+git clone git@github.com:iPick-Nexus/Stock-Recommendations.git
+cd Stock-Recommendations
+
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-\`\`\`
+pip install -e ".[dev]"
 
-> Fill in `requirements.txt` with at least: `xgboost`, `pandas`, `numpy`, `scikit-learn`.
+pytest
+```
 
-## Suggested project structure
+Tests read fixtures from `fixtures/`, or from `$IPICK_ML_FIXTURES` if set. Tests never touch the network. Read `CLAUDE.md` before writing code: it has the rules (pure functions, point-in-time `as_of`, no hard-coded paths or keys) and the production data facts.
 
-\`\`\`
-stock-recommendations/
-├── data/              # raw + processed feature tables
-├── src/
-│   ├── features.py    # build the (n_stocks × n_features) matrix
-│   ├── train.py       # train the XGBoost model
-│   ├── predict.py     # score stocks, return top 5
-│   └── backtest.py    # evaluate top-5 picks on held-out data
-├── models/            # saved model artifacts
-├── requirements.txt
-└── README.md
-\`\`\`
+## Project structure
+
+```
+Stock-Recommendations/
+├── stock_recs/             # Team 1 package
+│   ├── data/               # prices (yfinance) and features; imported by Teams 2 and 3, so its API is a contract
+│   └── recommend/          # XGBoost top-5 recommendations
+├── contracts/              # PM-owned: types.py, frames.md, features.md, MANIFEST.json (shipped to Teams 2 and 3)
+├── vendor/                 # PM-owned: code vendored from the iPick backend (track leader, ticker mapping, ...)
+├── fixtures/               # PM-owned: production-shaped fixture data, no real user data
+├── examples/               # example JSON outputs for the backend
+├── tests/
+│   ├── team1/              # Team 1 tests
+│   └── contract/           # PM-owned contract tests
+├── pyproject.toml          # packages stock_recs, contracts and vendor; pinned dependencies
+└── CLAUDE.md               # shared rules for all three repos
+```
+
+Changes to `contracts/`, `vendor/`, `fixtures/`, `CLAUDE.md` or `tests/contract/` need PM review (see `.github/CODEOWNERS`). To request one, open an issue and tag a PM.
+
+## Release process
+
+1. **Merge by Friday.** Anything meant for the week's release must be merged to `main` with CI green by end of day Friday. Keep PRs small; never push to `main` directly.
+2. **PMs tag `vX.Y.0`.** After the Friday cutoff, a PM tags the `main` commit and pushes the tag:
+   ```bash
+   git switch main && git pull
+   git tag -a vX.Y.0 -m "Release vX.Y.0"
+   git push origin vX.Y.0
+   ```
+   Patch releases (`vX.Y.1`, ...) are for urgent fixes only.
+3. **Consumers pin the tag.** The iPick backend (iPickAI_flask), Portfolio-Analysis (Team 2) and Portfolio-Reinforcement-Learning (Team 3) install this repo pinned to that tag and never to a branch:
+   ```
+   stock-recommendations @ git+ssh://git@github.com/iPick-Nexus/Stock-Recommendations.git@vX.Y.0
+   ```
+   Consumers upgrade by bumping the tag in their own PR.
 
 ## Roadmap
 
