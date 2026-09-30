@@ -1,0 +1,6 @@
+# PM-owned paths. Replace @arnavmahadev with the PM team handle when it exists.
+/contracts/      @arnavmahadev
+/vendor/         @arnavmahadev
+/fixtures/       @arnavmahadev
+/CLAUDE.md       @arnavmahadev
+/tests/contract/ @arnavmahadev

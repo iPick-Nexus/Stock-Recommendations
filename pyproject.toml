@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-recommendations"
+version = "0.0.1"
+description = "iPick ML Team 1: stock data, features and XGBoost top-5 recommendations. Ships the shared contracts and vendor packages."
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "pandas==2.3.0",
+    "numpy==1.26.4",
+    "pyarrow==17.0.0",
+    "yfinance==0.2.65",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+    "build==1.2.2",
+]
+
+[tool.setuptools.packages.find]
+include = ["stock_recs*", "contracts", "vendor*"]
+
+[tool.setuptools.package-data]
+# contracts/MANIFEST.json is a committed copy of fixtures/MANIFEST.json so other
+# repos can check they have the same fixtures (tests/contract enforces the match).
+contracts = ["MANIFEST.json", "*.md"]
+# Vendored code may read files next to it (e.g. SKILL.md policy files).
+vendor = ["**/*.md", "**/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"

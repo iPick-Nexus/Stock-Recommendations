@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest
+
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel
+        run: |
+          pip install build==1.2.2
+          python -m build --wheel --outdir dist
+      - name: Install wheel into a clean venv
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-venv"
+          "$RUNNER_TEMP/wheel-venv/bin/pip" install dist/*.whl
+      - name: Import from the installed wheel, not the source tree
+        working-directory: ${{ runner.temp }}
+        env:
+          REPO_DIR: ${{ github.workspace }}
+        run: |
+          "$RUNNER_TEMP/wheel-venv/bin/python" - <<'PY'
+          import os
+          from importlib.resources import files
+          from pathlib import Path
+
+          import stock_recs, contracts, vendor
+          import stock_recs.data, stock_recs.recommend, contracts.types
+
+          repo = Path(os.environ["REPO_DIR"]).resolve()
+          for mod in (stock_recs, contracts, vendor):
+              path = Path(mod.__file__).resolve()
+              assert "site-packages" in path.parts, f"{mod.__name__} imported from {path}"
+              assert repo not in path.parents, f"{mod.__name__} imported from source: {path}"
+              print(f"{mod.__name__}: {path}")
+
+          if (repo / "fixtures" / "MANIFEST.json").exists():
+              assert (files("contracts") / "MANIFEST.json").is_file(), "MANIFEST.json missing from wheel"
+              print("contracts/MANIFEST.json packaged")
+          PY
